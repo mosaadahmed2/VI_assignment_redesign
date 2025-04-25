@@ -328,6 +328,8 @@ document.addEventListener("DOMContentLoaded", function () {
                     mapSvg.append("g")
                         .attr("class", "brush")
                         .call(brush);
+
+                    
                     
                     // Brush behavior
                     function brushedMap(event) {
@@ -383,9 +385,64 @@ document.addEventListener("DOMContentLoaded", function () {
                         updateScatterplot(); // reflect selection in scatter
                         updateHistogram(inactiveHistSvg, currentXAttribute);
                     
-                    }                    
-                
-            });
+                    }       
+                    // Remove old legend if it exists
+        mapSvg.selectAll(".legend").remove();
+
+        // Add legend group
+        const legendWidth = 200;
+        const legendHeight = 12;
+        const legendX = width - legendWidth - 40;
+        const legendY = height - 30;
+
+        const legendGroup = mapSvg.append("g")
+            .attr("class", "legend")
+            .attr("transform", `translate(${legendX}, ${legendY})`);
+
+        // Define gradient for legend
+        const defs = mapSvg.append("defs");
+        const linearGradient = defs.append("linearGradient")
+            .attr("id", "legend-gradient");
+
+        linearGradient.selectAll("stop")
+            .data(d3.ticks(0, 1, 10))  // 10 color stops
+            .enter().append("stop")
+            .attr("offset", d => `${d * 100}%`)
+            .attr("stop-color", d => d3.interpolateRdBu(d));
+
+        // Append legend bar
+        legendGroup.append("rect")
+            .attr("width", legendWidth)
+            .attr("height", legendHeight)
+            .style("fill", "url(#legend-gradient)")
+            .style("stroke", "#ccc");
+
+        // Create legend scale (same domain as the color scale)
+        const legendScale = d3.scaleLinear()
+            .domain(d3.extent(data, d => d[currentXAttribute])) // use full dataset for consistent range
+            .range([0, legendWidth]);
+
+        const legendAxis = d3.axisBottom(legendScale)
+            .ticks(5)
+            .tickFormat(d => `${d.toFixed(1)}%`);
+
+        legendGroup.append("g")
+            .attr("transform", `translate(0, ${legendHeight})`)
+            .call(legendAxis)
+            .selectAll("text")
+            .style("font-size", "10px");
+
+        // Add label
+        legendGroup.append("text")
+            .attr("x", legendWidth / 2)
+            .attr("y", -6)
+            .attr("text-anchor", "middle")
+            .style("font-size", "12px")
+            .style("fill", "#333")
+            .text(attributeNames[currentXAttribute]);
+                    
+                        
+                    });
         }
 
         dropdown.on("change", function () {
