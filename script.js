@@ -237,18 +237,37 @@ document.addEventListener("DOMContentLoaded", function () {
                 .attr("height", 0)
                 .attr("y", updatedHistHeight - 50)
                 .remove();
-        
-            // Tooltip on bars
+            // Tooltip
+            const total = d3.sum(bins, bin => bin.length); // total for % calculation
+
             g.selectAll("rect")
-                .on("mouseover", function (event, d) {
-                    tooltip.transition().duration(200).style("opacity", 1);
-                    tooltip.html(`Range: ${d.x0.toFixed(1)}% - ${d.x1.toFixed(1)}%<br>Count: ${d.length}`)
-                        .style("left", (event.pageX + 10) + "px")
-                        .style("top", (event.pageY - 10) + "px");
-                })
-                .on("mouseout", function () {
-                    tooltip.transition().duration(500).style("opacity", 0);
-                });
+            .on("mouseover", function (event, d) {
+                d3.select(this)
+            .attr("stroke", "#333")
+            .attr("stroke-width", 1.5)
+            .attr("fill", d3.color(d3.select(this).attr("fill")).darker(1));
+                const binMidpoint = ((d.x0 + d.x1) / 2).toFixed(1);
+                const percent = ((d.length / total) * 100).toFixed(2);
+            
+                tooltip.transition().duration(200).style("opacity", 1);
+                tooltip.html(`
+                <strong>${attributeNames[dataKey]}</strong><br/>
+                Range: <b>${d.x0.toFixed(1)}%</b> - <b>${d.x1.toFixed(1)}%</b><br/>
+                Count: <b>${d.length}</b><br/>
+                Proportion: <b>${percent}%</b><br/>
+                Midpoint: <b>${binMidpoint}%</b>
+                `)
+                .style("left", (event.pageX + 10) + "px")
+                .style("top", (event.pageY - 10) + "px");
+            })
+            .on("mouseout", function () {
+                d3.select(this)
+            .attr("stroke", null)
+            .attr("stroke-width", null)
+            .attr("fill", d => attributeColors[dataKey]);
+                tooltip.transition().duration(500).style("opacity", 0);
+            });
+
             
         
             // X-axis label
@@ -327,11 +346,11 @@ document.addEventListener("DOMContentLoaded", function () {
                         // Update filteredData before computing color scale
                         filteredData = data.filter(d => selectedIds.includes(d.id));
                     
-                        // 🔥 Recompute color scale for filtered data
+                        //Recompute color scale for filtered data
                         const colorScale = d3.scaleSequential(d3.interpolateRdBu)
                             .domain(d3.extent(data, d => d[currentXAttribute]));
                     
-                        // 🔥 Now re-render paths with the updated scale
+                        // Now re-render paths with the updated scale
                         mapSvg.selectAll("path")
                             .data(allCounties)
                             .join("path")
@@ -346,7 +365,7 @@ document.addEventListener("DOMContentLoaded", function () {
                     
                     
                     
-                    // Optional: respond to brush end
+                    // respond to brush end
                     function brushedMapEnd(event) {
                         const selection = event.selection;
                     
