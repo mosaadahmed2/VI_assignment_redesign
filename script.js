@@ -9,7 +9,8 @@ document.addEventListener("DOMContentLoaded", function () {
     const heartHistSvg = d3.select("#heart-disease-histogram").append("svg").attr("width", histWidth).attr("height", histHeight);
     const mapSvg = d3.select("#map").append("svg").attr("width", width).attr("height", height);
 
-    let currentAttribute = "percent_inactive"; 
+    let currentXAttribute = "percent_inactive";
+    let currentYAttribute = "percent_coronary_heart_disease";
     let filteredData = [];  
 
     const attributeColors = {
@@ -53,20 +54,25 @@ document.addEventListener("DOMContentLoaded", function () {
             dropdown.append("option").attr("value", attr).text(attributeNames[attr]);
         });
 
+        const dropdownY = d3.select("#scatter-y-dropdown");
+        Object.keys(attributeNames).forEach(attr => {
+            dropdownY.append("option").attr("value", attr).text(attributeNames[attr]);
+        });
+
         function updateVisualizations() {
             updateScatterplot();
-            updateHistogram(inactiveHistSvg, currentAttribute);
-            updateHistogram(heartHistSvg, "percent_coronary_heart_disease");
+            updateHistogram(inactiveHistSvg, currentXAttribute,currentYAttribute);
+            
             updateMap(); 
         }
 
         function updateScatterplot() {
             const xScale = d3.scaleLinear()
-                .domain(d3.extent(data, d => d[currentAttribute]))
+                .domain(d3.extent(data, d => d[currentXAttribute]))
                 .range([margin.left, width - margin.right]);
         
             const yScale = d3.scaleLinear()
-                .domain(d3.extent(data, d => d.percent_coronary_heart_disease))
+                .domain(d3.extent(data, d => d[currentYAttribute]))
                 .range([height - margin.bottom, margin.top]);
         
             scatterSvg.selectAll("g").remove();
@@ -87,17 +93,17 @@ document.addEventListener("DOMContentLoaded", function () {
             
             points.enter()
                 .append("circle")
-                .attr("cx", d => xScale(d[currentAttribute]))
-                .attr("cy", d => yScale(d.percent_coronary_heart_disease))
+                .attr("cx", d => xScale(d[currentXAttribute]))
+                .attr("cy", d => yScale(d[currentYAttribute]))
                 .attr("r", 0)  
-                .attr("fill", attributeColors[currentAttribute])  
+                .attr("fill", attributeColors[currentXAttribute])  
                 .attr("opacity", 0.7)
                 .merge(points)  
                 .transition().duration(800).ease(d3.easeCubicInOut)
-                .attr("cx", d => xScale(d[currentAttribute]))
-                .attr("cy", d => yScale(d.percent_coronary_heart_disease))
+                .attr("cx", d => xScale(d[currentXAttribute]))
+                .attr("cy", d => yScale(d[currentYAttribute]))
                 .attr("r", 5)
-                .attr("fill", attributeColors[currentAttribute]);  
+                .attr("fill", attributeColors[currentXAttribute]);  
         
             
             points.exit()
@@ -120,8 +126,8 @@ document.addEventListener("DOMContentLoaded", function () {
                 const [[x0, y0], [x1, y1]] = selection;
         
                 filteredData = data.filter(d =>
-                    xScale(d[currentAttribute]) >= x0 && xScale(d[currentAttribute]) <= x1 &&
-                    yScale(d.percent_coronary_heart_disease) >= y0 && yScale(d.percent_coronary_heart_disease) <= y1
+                    xScale(d[currentXAttribute]) >= x0 && xScale(d[currentXAttribute]) <= x1 &&
+                    yScale(d[currentYAttribute]) >= y0 && yScale(d[currentYAttribute]) <= y1
                 );
         
                 // Smoothly update points while brushing
@@ -129,10 +135,10 @@ document.addEventListener("DOMContentLoaded", function () {
                     .data(filteredData, d => d.id)
                     .join("circle")
                     .transition().duration(200)
-                    .attr("cx", d => xScale(d[currentAttribute]))
-                    .attr("cy", d => yScale(d.percent_coronary_heart_disease))
+                    .attr("cx", d => xScale(d[currentXAttribute]))
+                    .attr("cy", d => yScale(d[currentYAttribute]))
                     .attr("r", 5)
-                    .attr("fill", attributeColors[currentAttribute])  
+                    .attr("fill", attributeColors[currentXAttribute])  
                     .attr("opacity", 0.7);
             }
         
@@ -248,7 +254,7 @@ document.addEventListener("DOMContentLoaded", function () {
         
                 const path = d3.geoPath().projection(projection);
         
-                const colorScale = d3.scaleSequential(d3.interpolateRdBu).domain(d3.extent(filteredData, d => d[currentAttribute]));
+                const colorScale = d3.scaleSequential(d3.interpolateRdBu).domain(d3.extent(filteredData, d => d[currentXAttribute]));
         
                 mapSvg.selectAll("path")
                     .data(topojson.feature(us, us.objects.counties).features)
@@ -256,7 +262,7 @@ document.addEventListener("DOMContentLoaded", function () {
                     .attr("d", path)
                     .attr("fill", d => {
                         const county = filteredData.find(c => c.id == d.id);
-                        return county ? colorScale(county[currentAttribute]) : "#ddd";
+                        return county ? colorScale(county[currentXAttribute]) : "#ddd";
                     })
                     .attr("stroke", "#fff")
                     .attr("stroke-width", 0.3);
@@ -303,7 +309,7 @@ document.addEventListener("DOMContentLoaded", function () {
         }
 
         dropdown.on("change", function () {
-            currentAttribute = this.value;
+            currentXAttribute = this.value;
             filteredData = data;
             updateVisualizations();
         });
