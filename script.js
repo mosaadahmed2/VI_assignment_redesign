@@ -3,7 +3,7 @@ document.addEventListener("DOMContentLoaded", function () {
     const margin = { top: 40, right: 40, bottom: 50, left: 70 };
 
     const scatterSvg = d3.select("#scatterplot").append("svg").attr("width", width).attr("height", height);
-    const histWidth = 400, histHeight = 300;
+    const histWidth = 400, histHeight = 350;
 
     const inactiveHistSvg = d3.select("#inactive-histogram").append("svg").attr("width", histWidth).attr("height", histHeight);
     const heartHistSvg = d3.select("#heart-disease-histogram").append("svg").attr("width", histWidth).attr("height", histHeight);
@@ -81,6 +81,8 @@ document.addEventListener("DOMContentLoaded", function () {
         
             const points = scatterSvg.selectAll("circle")
                 .data(filteredData, d => d.id);
+
+            
         
             
             points.enter()
@@ -149,8 +151,10 @@ document.addEventListener("DOMContentLoaded", function () {
         
 
         function updateHistogram(svg, dataKey) {
-            // Define the scales
-            svg.selectAll("*").remove();
+            const updatedHistHeight = 330; // increased height to make room for X label
+        
+            svg.selectAll("*").remove(); // Clear previous content
+        
             const x = d3.scaleLinear()
                 .domain(d3.extent(filteredData, d => d[dataKey]))
                 .range([0, histWidth - 100]);
@@ -161,51 +165,40 @@ document.addEventListener("DOMContentLoaded", function () {
         
             const y = d3.scaleLinear()
                 .domain([0, d3.max(bins, d => d.length)])
-                .range([histHeight - 50, 0]);
+                .range([updatedHistHeight - 50, 0]);
         
-            // create group element
-            let g = svg.select("g");
-            if (g.empty()) {
-                g = svg.append("g").attr("transform", "translate(50,30)");
-            }
+            const g = svg.append("g").attr("transform", "translate(50,30)");
         
-            // Update Axes
-            g.selectAll(".x-axis").remove();
-            g.selectAll(".y-axis").remove();
+            // Axes
             g.append("g")
-                .attr("class", "x-axis")
-                .attr("transform", `translate(0, ${histHeight - 50})`)
+                .attr("transform", `translate(0, ${updatedHistHeight - 50})`)
                 .call(d3.axisBottom(x));
         
             g.append("g")
-                .attr("class", "y-axis")
                 .call(d3.axisLeft(y));
         
-            // Bind Data to Bars
+            // Bars
             const bars = g.selectAll("rect")
-                .data(bins, d => d.x0);  //Key function ensures smooth updates
-
-            
+                .data(bins, d => d.x0);
         
-            // ENTER: New bars (start at height 0)
             bars.enter()
                 .append("rect")
                 .attr("x", d => x(d.x0))
-                .attr("y", histHeight - 50) // Start at bottom
-                .attr("width", d => x(d.x1) - x(d.x0) - 2)
-                .attr("height", 0) // Start with zero height
-                .attr("fill", d => attributeColors[dataKey])
+                .attr("y", updatedHistHeight - 50)
+                .attr("width", d => Math.max(0, x(d.x1) - x(d.x0) - 1))
+
+                .attr("height", 0)
+                .attr("fill", attributeColors[dataKey])
                 .attr("opacity", 0.7)
-                .merge(bars) // MERGE: Apply transition to both new & existing bars
+                .merge(bars)
                 .transition().duration(700).ease(d3.easeCubicInOut)
                 .attr("y", d => y(d.length))
-                .attr("height", d => histHeight - 50 - y(d.length));
+                .attr("height", d => updatedHistHeight - 50 - y(d.length));
         
-            // EXIT: Remove old bars
             bars.exit()
                 .transition().duration(500)
                 .attr("height", 0)
-                .attr("y", histHeight - 50) // Shrink before removing
+                .attr("y", updatedHistHeight - 50)
                 .remove();
         
             // Tooltip on bars
@@ -219,6 +212,31 @@ document.addEventListener("DOMContentLoaded", function () {
                 .on("mouseout", function () {
                     tooltip.transition().duration(500).style("opacity", 0);
                 });
+            
+        
+            // X-axis label
+            svg.selectAll(".x-axis-label").remove();
+            svg.append("text")
+                .attr("class", "x-axis-label")
+                .attr("x", histWidth / 2)
+                .attr("y", updatedHistHeight + 15)
+                .attr("text-anchor", "middle")
+                .style("font-size", "14px")
+                .style("fill", "#333")
+                .text(attributeNames[dataKey]);
+        
+            // Y-axis label
+            svg.selectAll(".y-axis-label").remove();
+            svg.append("text")
+                .attr("class", "y-axis-label")
+                .attr("transform", "rotate(-90)")
+                .attr("x", -updatedHistHeight / 2)
+                .attr("y", 15)
+                .attr("text-anchor", "middle")
+                .style("font-size", "14px")
+                .style("fill", "#333")
+                .text("Count");
+
         }
         
 
