@@ -1,3 +1,13 @@
+const attributeNames = {
+    "percent_inactive": "Physical Inactivity (%)",
+    "percent_coronary_heart_disease": "Heart Disease (%)",
+    "percent_high_cholesterol": "Cholesterol (%)",
+    "percent_smoking": "Smoking (%)",
+    
+    "poverty_perc": "Poverty Rate (%)",
+    "median_household_income": "Median Income ($)"
+};
+
 document.addEventListener("DOMContentLoaded", function () {
     const width = 600, height = 400;
     const margin = { top: 40, right: 40, bottom: 50, left: 70 };
@@ -77,8 +87,8 @@ document.addEventListener("DOMContentLoaded", function () {
         function updateVisualizations() {
             updateScatterplot();
             updateHistogram(inactiveHistSvg, currentXAttribute,currentYAttribute);
-            
             updateMap(); 
+            updateBigNumberPanel(filteredData, currentXAttribute);
         }
 
         function updateScatterplot() {
@@ -201,6 +211,7 @@ console.log("Max income:", d3.max(data, d => d.median_household_income));
 
             updateHistogram(inactiveHistSvg, currentXAttribute);
             updateMap();
+            updateBigNumberPanel(filteredData, currentXAttribute);
 
 
 }
@@ -408,7 +419,8 @@ console.log("Max income:", d3.max(data, d => d.median_household_income));
                     
                         updateScatterplot(); // reflect selection in scatter
                         updateHistogram(inactiveHistSvg, currentXAttribute);
-                    
+                        
+                        updateBigNumberPanel(filteredData, currentXAttribute);
                     }       
                     // Remove old legend if it exists
         mapSvg.selectAll(".legend").remove();
@@ -473,8 +485,28 @@ console.log("Max income:", d3.max(data, d => d.median_household_income));
             currentXAttribute = this.value;
             filteredData = data;
             updateVisualizations();
+            
         });
 
         updateVisualizations();
+     
     });
 });
+
+function updateBigNumberPanel(filteredData, currentXAttribute) {
+    const avg = d3.mean(filteredData, d => d[currentXAttribute]);
+
+    if (!isFinite(avg)) {
+        d3.select("#big-number-value").text("--");
+        d3.select("#big-number-label").text("No data available");
+        return;
+    }
+
+    const label = attributeNames[currentXAttribute] || currentXAttribute;
+    const formatted = currentXAttribute.includes("income")
+        ? `$${Math.round(avg).toLocaleString()}`
+        : `${avg.toFixed(1)}%`;
+
+    d3.select("#big-number-value").text(formatted);
+    d3.select("#big-number-label").text(`Avg. ${label} in Selected Area`);
+}
