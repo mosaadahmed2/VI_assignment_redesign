@@ -139,43 +139,47 @@ document.addEventListener("DOMContentLoaded", function () {
                 .remove();
         
             
+           // DEFINE and ATTACH brush
             const brush = d3.brush()
-                .extent([[margin.left, margin.top], [width - margin.right, height - margin.bottom]])
-                .on("brush", brushedScatter)  // Live updates
-                .on("end", brushedScatterEnd); // Update on release
-        
-            scatterSvg.append("g").call(brush);
-        
-            // BRUSH UPDATES
+            .extent([[margin.left, margin.top], [width - margin.right, height - margin.bottom]])
+            .on("brush", brushedScatter)
+            .on("end", brushedScatterEnd);
+
+            scatterSvg.append("g")
+            .attr("class", "brush")
+            .call(brush);
+
             function brushedScatter({ selection }) {
-                if (!selection) return;
-        
-                const [[x0, y0], [x1, y1]] = selection;
-        
-                filteredData = data.filter(d =>
+            if (!selection) return;
+
+            const [[x0, y0], [x1, y1]] = selection;
+
+            scatterSvg.selectAll("circle")
+                .attr("opacity", d =>
                     xScale(d[currentXAttribute]) >= x0 && xScale(d[currentXAttribute]) <= x1 &&
                     yScale(d[currentYAttribute]) >= y0 && yScale(d[currentYAttribute]) <= y1
+                        ? 0.9 : 0.1
                 );
-        
-                // Smoothly update points while brushing
-                scatterSvg.selectAll("circle")
-                    .data(filteredData, d => d.id)
-                    .join("circle")
-                    .transition().duration(200)
-                    .attr("cx", d => xScale(d[currentXAttribute]))
-                    .attr("cy", d => yScale(d[currentYAttribute]))
-                    .attr("r", 5)
-                    .attr("fill", attributeColors[currentXAttribute])  
-                    .attr("opacity", 0.7);
             }
-        
-            
+
             function brushedScatterEnd({ selection }) {
-                if (!selection) {
-                    filteredData = data; // Reset to full dataset
-                }
-                updateScatterplot(); // Refresh with full animation
+            if (!selection) {
+                scatterSvg.selectAll("circle").attr("opacity", 0.7); // Reset opacity
+                return;
             }
+
+            const [[x0, y0], [x1, y1]] = selection;
+
+            filteredData = data.filter(d =>
+                xScale(d[currentXAttribute]) >= x0 && xScale(d[currentXAttribute]) <= x1 &&
+                yScale(d[currentYAttribute]) >= y0 && yScale(d[currentYAttribute]) <= y1
+            );
+
+            updateHistogram(inactiveHistSvg, currentXAttribute);
+            updateMap();
+
+
+}
         }
         
         
