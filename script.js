@@ -84,6 +84,33 @@ document.addEventListener("DOMContentLoaded", function () {
             scatterSvg.append("g")
                 .attr("transform", `translate(${margin.left}, 0)`)
                 .call(d3.axisLeft(yScale));
+
+               // Add or update X-axis label
+            let xLabel = scatterSvg.select(".x-axis-label");
+            if (xLabel.empty()) {
+                xLabel = scatterSvg.append("text")
+                    .attr("class", "x-axis-label")
+                    .attr("x", width / 2)
+                    .attr("y", height - 10)
+                    .attr("text-anchor", "middle")
+                    .style("font-size", "14px")
+                    .style("fill", "#333");
+            }
+            xLabel.text(attributeNames[currentXAttribute]);
+
+            // Add or update Y-axis label
+            let yLabel = scatterSvg.select(".y-axis-label");
+            if (yLabel.empty()) {
+                yLabel = scatterSvg.append("text")
+                    .attr("class", "y-axis-label")
+                    .attr("transform", "rotate(-90)")
+                    .attr("x", -height / 2)
+                    .attr("y", 20)
+                    .attr("text-anchor", "middle")
+                    .style("font-size", "14px")
+                    .style("fill", "#333");
+            }
+            yLabel.text(attributeNames[currentYAttribute]);
         
             const points = scatterSvg.selectAll("circle")
                 .data(filteredData, d => d.id);
