@@ -17,14 +17,20 @@ document.addEventListener("DOMContentLoaded", function () {
         "percent_inactive": "#64B5F6",
         "percent_coronary_heart_disease": "#E57373",
         "percent_high_cholesterol": "#81C784",
-        "percent_smoking": "#1C9099"
+        "percent_smoking": "#1C9099",
+    
+        "poverty_perc": "#BA68C8",
+        "median_household_income": "#4DB6AC"
     };
 
     const attributeNames = {
         "percent_inactive": "Physical Inactivity (%)",
         "percent_coronary_heart_disease": "Heart Disease (%)",
         "percent_high_cholesterol": "Cholesterol (%)",
-        "percent_smoking": "Smoking (%)"
+        "percent_smoking": "Smoking (%)",
+        
+        "poverty_perc": "Poverty Rate (%)",
+        "median_household_income": "Median Income ($)"
     };
 
     const tooltip = d3.select("body").append("div")
@@ -44,8 +50,17 @@ document.addEventListener("DOMContentLoaded", function () {
             d.percent_inactive = +d.percent_inactive;
             d.percent_coronary_heart_disease = +d.percent_coronary_heart_disease;
             d.percent_high_cholesterol = +d.percent_high_cholesterol;
-            d.percent_smoking = +d.percent_smoking;
+            d.percent_smoking = +d.percent_smoking
+            d.poverty_perc = +d.poverty_perc
+            d.median_household_income = +d.median_household_income;
         });
+        data = data.filter(d =>
+            isFinite(d[currentXAttribute]) &&
+            isFinite(d[currentYAttribute]) &&
+            d[currentXAttribute] !== 0 &&
+            d[currentYAttribute] !== 0
+        );
+        
 
         filteredData = data;
 
@@ -69,11 +84,20 @@ document.addEventListener("DOMContentLoaded", function () {
         function updateScatterplot() {
             const xScale = d3.scaleLinear()
                 .domain(d3.extent(data, d => d[currentXAttribute]))
-                .range([margin.left, width - margin.right]);
+                
+                .range([margin.left, width - margin.right])
+                
+                
         
             const yScale = d3.scaleLinear()
                 .domain(d3.extent(data, d => d[currentYAttribute]))
-                .range([height - margin.bottom, margin.top]);
+                
+                .range([height - margin.bottom, margin.top])
+                
+
+                console.log("Max poverty:", d3.max(data, d => d.poverty_perc));
+console.log("Max income:", d3.max(data, d => d.median_household_income));
+
         
             scatterSvg.selectAll("g").remove();
         
@@ -91,7 +115,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 xLabel = scatterSvg.append("text")
                     .attr("class", "x-axis-label")
                     .attr("x", width / 2)
-                    .attr("y", height - 10)
+                    .attr("y", height - 5)
                     .attr("text-anchor", "middle")
                     .style("font-size", "14px")
                     .style("fill", "#333");
@@ -419,7 +443,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
         // Create legend scale (same domain as the color scale)
         const legendScale = d3.scaleLinear()
-            .domain(d3.extent(data, d => d[currentXAttribute])) // use full dataset for consistent range
+            .domain(d3.extent(data, d => d[currentXAttribute])) 
             .range([0, legendWidth]);
 
         const legendAxis = d3.axisBottom(legendScale)
