@@ -299,42 +299,72 @@ document.addEventListener("DOMContentLoaded", function () {
                     .attr("stroke-width", 0.3);
             
 
+                    mapSvg.selectAll(".brush").remove(); // clear any existing brush
+
                     const brush = d3.brush()
-                    .extent([[0, 0], [width, height]])
-                    .on("brush", brushedMap) // Real-time filtering
-                    .on("end", brushedMapEnd); // Final update when released
-                
-                mapSvg.append("g").call(brush);
-                
-                function brushedMap(event) {
-                    const selection = event.selection;
-                
-                    if (!selection) {
-                        filteredData = data; // Reset to full dataset if no selection
-                    } else {
+                        .extent([[0, 0], [width, height]])
+                        .on("brush", brushedMap)
+                        .on("end", brushedMapEnd);
+                    
+                    mapSvg.append("g")
+                        .attr("class", "brush")
+                        .call(brush);
+                    
+                    // Brush behavior
+                    function brushedMap(event) {
+                        const selection = event.selection;
+                        if (!selection) return;
+                    
                         const [[x0, y0], [x1, y1]] = selection;
-                
-                        const selectedCounties = topojson.feature(us, us.objects.counties).features.filter(d => {
-                            const centroid = path.centroid(d);
-                            return centroid[0] >= x0 && centroid[0] <= x1 && centroid[1] >= y0 && centroid[1] <= y1;
+                    
+                        const allCounties = topojson.feature(us, us.objects.counties).features;
+                    
+                        const selectedIds = allCounties.filter(d => {
+                            const [cx, cy] = path.centroid(d);
+                            return cx >= x0 && cx <= x1 && cy >= y0 && cy <= y1;
                         }).map(d => d.id);
-                
-                        filteredData = data.filter(d => selectedCounties.includes(d.id));
+                    
+                        // Update filteredData before computing color scale
+                        filteredData = data.filter(d => selectedIds.includes(d.id));
+                    
+                        // 🔥 Recompute color scale for filtered data
+                        const colorScale = d3.scaleSequential(d3.interpolateRdBu)
+                            .domain(d3.extent(data, d => d[currentXAttribute]));
+                    
+                        // 🔥 Now re-render paths with the updated scale
+                        mapSvg.selectAll("path")
+                            .data(allCounties)
+                            .join("path")
+                            .attr("d", path)
+                            .attr("fill", d => {
+                                const county = filteredData.find(c => c.id == d.id);
+                                return county ? colorScale(county[currentXAttribute]) : "#eee";
+                            })
+                            .attr("stroke", "#fff")
+                            .attr("stroke-width", 0.3);
                     }
-                
-                    updateVisualizations();
-                
-                    // remove the existing brush selection
-                    d3.select(".brush").call(brush.move, null);
-                }
-                
-                
-                function brushedMapEnd({ selection }) {
-                    if (!selection) {
-                        filteredData = data; // Reset
-                    }
-                    updateVisualizations(); 
-                }
+                    
+                    
+                    
+                    // Optional: respond to brush end
+                    function brushedMapEnd(event) {
+                        const selection = event.selection;
+                    
+                        if (!selection) return;
+                    
+                        const [[x0, y0], [x1, y1]] = selection;
+                    
+                        const selectedIds = topojson.feature(us, us.objects.counties).features.filter(d => {
+                            const [cx, cy] = path.centroid(d);
+                            return cx >= x0 && cx <= x1 && cy >= y0 && cy <= y1;
+                        }).map(d => d.id);
+                    
+                        filteredData = data.filter(d => selectedIds.includes(d.id));
+                    
+                        updateScatterplot(); // reflect selection in scatter
+                        updateHistogram(inactiveHistSvg, currentXAttribute);
+                    
+                    }                    
                 
             });
         }
