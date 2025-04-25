@@ -1,6 +1,6 @@
 const attributeNames = {
-    "percent_inactive": "Physical Inactivity (%)",
     "percent_coronary_heart_disease": "Heart Disease (%)",
+    "percent_inactive": "Physical Inactivity (%)",
     "percent_high_cholesterol": "Cholesterol (%)",
     "percent_smoking": "Smoking (%)",
     
@@ -24,13 +24,13 @@ document.addEventListener("DOMContentLoaded", function () {
     let filteredData = [];  
 
     const attributeColors = {
-        "percent_inactive": "#64B5F6",
-        "percent_coronary_heart_disease": "#E57373",
+        "percent_inactive": "#4FC3F7",
+        "percent_coronary_heart_disease": "#F06292",
         "percent_high_cholesterol": "#81C784",
-        "percent_smoking": "#1C9099",
+        "percent_smoking": "#BA68C8",
     
-        "poverty_perc": "#BA68C8",
-        "median_household_income": "#4DB6AC"
+        "poverty_perc": "#FFB74D",
+        "median_household_income": "#64B5F6"
     };
 
     const attributeNames = {
@@ -80,9 +80,13 @@ document.addEventListener("DOMContentLoaded", function () {
         });
 
         const dropdownY = d3.select("#scatter-y-dropdown");
-        Object.keys(attributeNames).forEach(attr => {
-            dropdownY.append("option").attr("value", attr).text(attributeNames[attr]);
-        });
+Object.keys(attributeNames).forEach(attr => {
+    dropdownY.append("option")
+        .attr("value", attr)
+        .property("selected", attr === currentYAttribute)  
+        .text(attributeNames[attr]);
+});
+
 
         function updateVisualizations() {
             updateScatterplot();
@@ -252,6 +256,8 @@ console.log("Max income:", d3.max(data, d => d.median_household_income));
             // Bars
             const bars = g.selectAll("rect")
                 .data(bins, d => d.x0);
+
+            
         
             bars.enter()
                 .append("rect")
@@ -272,6 +278,28 @@ console.log("Max income:", d3.max(data, d => d.median_household_income));
                 .attr("height", 0)
                 .attr("y", updatedHistHeight - 50)
                 .remove();
+
+            // Remove any existing labels to avoid duplication
+g.selectAll(".bar-label").remove();
+
+// Add new labels above bars
+g.selectAll(".bar-label")
+    .data(bins)
+    .enter()
+    .append("text")
+    .attr("class", "bar-label")
+    .attr("x", d => x(d.x0) + ((x(d.x1) - x(d.x0)) / 2))
+    .attr("y", d => y(d.length) - 5)
+    .attr("text-anchor", "middle")
+    .style("font-size", "10px")
+    .style("fill", "#333")
+    .text(d => {
+        const width = x(d.x1) - x(d.x0);
+        return (width > 12 && d.length > 0) ? d.length : ""; // Show only if wide enough
+    });
+
+
+
             // Tooltip
             const total = d3.sum(bins, bin => bin.length); // total for % calculation
 
@@ -339,7 +367,7 @@ console.log("Max income:", d3.max(data, d => d.median_household_income));
         
                 const path = d3.geoPath().projection(projection);
         
-                const colorScale = d3.scaleSequential(d3.interpolateRdBu).domain(d3.extent(filteredData, d => d[currentXAttribute]));
+                const colorScale = d3.scaleSequential(d3.interpolateRdBu).domain(d3.extent(data, d => d[currentXAttribute]));
         
                 mapSvg.selectAll("path")
                     .data(topojson.feature(us, us.objects.counties).features)
@@ -428,7 +456,7 @@ console.log("Max income:", d3.max(data, d => d.median_household_income));
         // Add legend group
         const legendWidth = 200;
         const legendHeight = 12;
-        const legendX = width - legendWidth - 40;
+        const legendX = width - legendWidth - 390;
         const legendY = height - 30;
 
         const legendGroup = mapSvg.append("g")
@@ -488,7 +516,12 @@ console.log("Max income:", d3.max(data, d => d.median_household_income));
             
         });
 
-        updateVisualizations();
+        dropdownY.on("change", function () {
+    currentYAttribute = this.value;
+    filteredData = data;
+    updateVisualizations();
+});
+updateVisualizations(); // Initial render
      
     });
 });
